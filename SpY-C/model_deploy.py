@@ -204,7 +204,7 @@ def load_peptides(path):
     ext = os.path.splitext(path)[1].lower()
     if ext == '.csv':
         ds  = pd.read_csv(path)
-        col = 'peptide' if 'peptide' in ds.columns else ds.columns[0]
+        col = '6mer_peptide' if '6mer_peptide' in ds.columns else ds.columns[0]
         return ds[col].tolist()
     else:
         with open(path) as f:
