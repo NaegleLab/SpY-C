@@ -10,8 +10,7 @@ from collections import Counter
 # ===========================
 parser = argparse.ArgumentParser(
     description="Deploy trained binder model on one or multiple datasets.",
-    formatter_class=argparse.RawTextHelpFormatter
-)
+    formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument("--model",      required=True,  help="Path to .pkl model file")
 parser.add_argument("--binders",    required=True,  help="Path to final training binders .txt file")
 parser.add_argument("--nonbinders", required=True,  help="Path to final training nonbinders .txt file")
@@ -38,8 +37,7 @@ parser.add_argument("--datasets",
                         "Paths to one or more dataset files, space-separated.\n"
                         "Example:\n"
                         "  --datasets data1.csv data2.csv data3.txt\n"
-                        "Pair with --names to assign a label to each (must match order)."
-                    ))
+                        "Pair with --names to assign a label to each (must match order)."))
 parser.add_argument("--names",
                     nargs="+",
                     default=None,
@@ -48,8 +46,7 @@ parser.add_argument("--names",
                         "Labels for datasets passed via --datasets, space-separated.\n"
                         "Example:\n"
                         "  --names SetA SetB Control\n"
-                        "Count must match --datasets. If omitted, filename stem is used."
-                    ))
+                        "Count must match --datasets. If omitted, filename stem is used."))
 
 args = parser.parse_args()
 
@@ -59,12 +56,10 @@ args = parser.parse_args()
 dataset_list = []
 
 if args.datasets:
-    
     if args.names is not None and len(args.names) != len(args.datasets):
         parser.error(
             f"--names has {len(args.names)} label(s) but --datasets has "
-            f"{len(args.datasets)} file(s). Counts must match."
-        )
+            f"{len(args.datasets)} file(s). Counts must match.")
     for i, fpath in enumerate(args.datasets):
         if not os.path.isfile(fpath):
             parser.error(f"Dataset file not found: '{fpath}'")
@@ -81,8 +76,7 @@ else:
     parser.error(
         "No dataset provided. Use:\n"
         "  --dataset FILE              for a single dataset\n"
-        "  --datasets FILE1 FILE2 ...  for multiple datasets"
-    )
+        "  --datasets FILE1 FILE2 ...  for multiple datasets")
 
 os.makedirs(args.outdir, exist_ok=True)
 
@@ -112,15 +106,13 @@ dpps_scores = {
     'W': torch.Tensor([3.88, 1.78, 1.68, 2, 9.31, 0.89, 7.53, 4.27, -0.23, -1.42]),
     'Y': torch.Tensor([2.1, 1.26, 1.15, 0.91, 5.9, 0.74, 3.71, 3.32, 0.25, 1.33]),
     'V': torch.Tensor([0.83, -3.02, -0.22, 0.97, 0.05, -4.55, 5.61, -1.41, -1.44, 0.3]),
-    '-': torch.Tensor([0]*10)
-}
+    '-': torch.Tensor([0]*10)}
 
 hydropathy_dict = {
     "A": 1.8,  "R": -4.5, "N": -3.5, "D": -3.5, "C": 2.5,
     "Q": -3.5, "E": -3.5, "G": -0.4, "H": -3.2, "I": 4.5,
     "L": 3.8,  "K": -3.9, "M": 1.9,  "F": 2.8,  "P": -1.6,
-    "S": -0.8, "T": -0.7, "W": -0.9, "Y": -1.3, "V": 4.2
-}
+    "S": -0.8, "T": -0.7, "W": -0.9, "Y": -1.3, "V": 4.2}
 
 # ===========================
 # ENCODING FUNCTIONS
@@ -199,70 +191,90 @@ print(f"Nonbinders loaded: {len(nonbinders)}")
 
 # ===========================
 # LOAD DATASET HELPER
+# Returns full DataFrame + the name of the peptide column
 # ===========================
 def load_peptides(path):
     ext = os.path.splitext(path)[1].lower()
     if ext == '.csv':
         ds  = pd.read_csv(path)
         col = '6mer_peptide' if '6mer_peptide' in ds.columns else ds.columns[0]
-        return ds[col].tolist()
+        return ds, col
     else:
         with open(path) as f:
-            return [line.strip() for line in f if line.strip()]
+            lines = [line.strip() for line in f if line.strip()]
+        return pd.DataFrame({'6mer_peptide': lines}), '6mer_peptide'
 
 # ===========================
 # PREDICT
+# Accepts full input_df, filters valid rows, predicts, and merges
+# prediction columns back — all original columns are preserved.
 # ===========================
-def predict_peptides(peptides, name="Dataset"):
-    total = len(peptides)
-    valid = [
-        pep.strip() for pep in peptides
-        if isinstance(pep, str)
-        and '-' not in pep
-        and len(pep.strip()) == EXPECTED_LEN
-    ]
-    n_invalid = total - len(valid)
+def predict_peptides(input_df, pep_col, name="Dataset"):
+    total = len(input_df)
+
+    mask = input_df[pep_col].apply(
+        lambda pep: isinstance(pep, str)
+                    and '-' not in pep
+                    and len(pep.strip()) == EXPECTED_LEN)
+    valid_df = input_df[mask].copy()
+    valid_df[pep_col] = valid_df[pep_col].str.strip()
+
+    n_invalid = total - len(valid_df)
     if n_invalid:
         print(f"{name}: {n_invalid} peptides rejected (wrong length or contains gap)")
-    if not valid:
+    if valid_df.empty:
         print(f"{name}: No valid peptides to predict.")
         return None
 
+    valid_peps = valid_df[pep_col].tolist()
+
     X = np.hstack([
-        encode_logodds_sum(valid, log_b,  log_nb),
-        encode_dpps_sum(valid,   dpps_b, dpps_nb),
-        encode_hydro_sum(valid,  hydro_b, hydro_nb)
-    ])
+        encode_logodds_sum(valid_peps, log_b,  log_nb),
+        encode_dpps_sum(valid_peps,   dpps_b, dpps_nb),
+        encode_hydro_sum(valid_peps,  hydro_b, hydro_nb)])
 
     preds = model.predict(X)
     probs = model.predict_proba(X)[:, 1]
 
-    print(f"{name}: {preds.sum()} / {len(valid)} predicted binders ({preds.mean()*100:.2f}%)")
+    print(f"{name}: {preds.sum()} / {len(valid_peps)} predicted binders ({preds.mean()*100:.2f}%)")
 
-    return pd.DataFrame({
-        'peptide':         valid,
-        'predicted_class': preds,
-        'binder_prob':     probs
-    }).sort_values('binder_prob', ascending=False).reset_index(drop=True)
+    # Attach predictions to the valid rows (all original columns kept)
+    pred_df = valid_df.copy()
+    pred_df['predicted_class'] = preds
+    pred_df['binder_prob']     = probs
+    pred_df = pred_df.sort_values('binder_prob', ascending=False).reset_index(drop=True)
+
+    return pred_df
 
 # ===========================
 # BOOTSTRAP
 # ===========================
-def bootstrap_evaluate(peptides, name="Dataset", n_iter=10000, frac=0.95):
-    filtered = [
-        pep.strip() for pep in peptides
-        if isinstance(pep, str)
-        and '-' not in pep
-        and len(pep.strip()) == EXPECTED_LEN
-    ]
-    eval_peptides = list(set(filtered) - set(binders) - set(nonbinders))
-    print(f"\n{name}: {len(eval_peptides)} peptides after filtering training set")
+def bootstrap_evaluate(input_df, pep_col, name="Dataset", n_iter=10000, frac=0.95):
+    # Filter to valid-length, gap-free peptides
+    mask = input_df[pep_col].apply(
+        lambda pep: isinstance(pep, str)
+                    and '-' not in pep
+                    and len(pep.strip()) == EXPECTED_LEN)
+    filtered_df = input_df[mask].copy()
+    filtered_df[pep_col] = filtered_df[pep_col].str.strip()
 
-    if len(eval_peptides) == 0:
+    # Remove training peptides
+    training_set = set(binders) | set(nonbinders)
+    eval_df = filtered_df[~filtered_df[pep_col].isin(training_set)].copy()
+    print(f"\n{name}: {len(eval_df)} peptides after filtering training set")
+
+    # Deduplicate — bootstrap mean/sd should be over unique peptides only
+    n_before_dedup = len(eval_df)
+    eval_df = eval_df.drop_duplicates(subset=pep_col).copy()
+    n_dupes = n_before_dedup - len(eval_df)
+    if n_dupes:
+        print(f"{name}: {n_dupes} duplicate peptides removed before bootstrap ({len(eval_df)} unique)")
+
+    if eval_df.empty:
         print(f"{name}: No valid peptides after filtering.")
         return None
 
-    pred_df = predict_peptides(eval_peptides, name=name)
+    pred_df = predict_peptides(eval_df, pep_col, name=name)
     if pred_df is None:
         return None
 
@@ -295,8 +307,8 @@ def bootstrap_evaluate(peptides, name="Dataset", n_iter=10000, frac=0.95):
         "mean":           mean_frac,
         "sd":             sd_frac,
         "N":              N,
-        "predictions_df": pred_df
-    }
+        "n_total":        len(input_df),
+        "predictions_df": pred_df}
 
 # ===========================
 # RUN ALL DATASETS
@@ -308,37 +320,36 @@ for dataset_path, dataset_name in dataset_list:
     print(f"  Processing : {dataset_name}  ({dataset_path})")
     print(f"{'='*50}")
 
-    raw_peptides = load_peptides(dataset_path)
-    print(f"Loaded {len(raw_peptides)} peptides")
+    input_df, pep_col = load_peptides(dataset_path)
+    print(f"Loaded {len(input_df)} peptides")
 
     result = bootstrap_evaluate(
-        raw_peptides,
+        input_df, pep_col,
         name=dataset_name,
         n_iter=args.n_iter,
-        frac=args.frac
-    )
+        frac=args.frac)
 
     if result is None:
         continue
 
-    # Per-peptide predictions
+    # Per-peptide predictions — all original columns + predicted_class + binder_prob
     pred_out = os.path.join(args.outdir, f"{dataset_name}_predictions.csv")
     result["predictions_df"].to_csv(pred_out, index=False)
     print(f"Saved: {pred_out}")
 
-    # All bootstrap fractions
-    #frac_out = os.path.join(args.outdir, f"{dataset_name}_bootstrap_fractions.csv")
-    #pd.DataFrame({"bootstrap_fraction": result["fractions"]}).to_csv(frac_out, index=False)
-    #print(f"Saved: {frac_out}")
+    # All bootstrap fractions (uncomment if needed)
+    # frac_out = os.path.join(args.outdir, f"{dataset_name}_bootstrap_fractions.csv")
+    # pd.DataFrame({"bootstrap_fraction": result["fractions"]}).to_csv(frac_out, index=False)
+    # print(f"Saved: {frac_out}")
 
     all_summaries.append({
-        "dataset":         result["name"],
-        "n_peptides":      result["N"],
-        "binder_fraction": result["mean"],
-        "sd":              result["sd"],
-        "n_iter":          args.n_iter,
-        "sample_frac":     args.frac
-    })
+        "dataset":                   result["name"],
+        "n_total_loaded":            result["n_total"],
+        "n_predicted_after_filter":  result["N"],
+        "binder_fraction":           result["mean"],
+        "sd":                        result["sd"],
+        "n_iter":                    args.n_iter,
+        "sample_frac":               args.frac})
 
 # ===========================
 # COMBINED SUMMARY
