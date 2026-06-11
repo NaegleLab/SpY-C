@@ -206,6 +206,8 @@ def load_peptides(path):
 
 # ===========================
 # PREDICT
+# Accepts full input_df, filters valid rows, predicts, and merges
+# prediction columns back — all original columns are preserved.
 # ===========================
 def predict_peptides(input_df, pep_col, name="Dataset"):
     total = len(input_df)
@@ -236,6 +238,7 @@ def predict_peptides(input_df, pep_col, name="Dataset"):
 
     print(f"{name}: {preds.sum()} / {len(valid_peps)} predicted binders ({preds.mean()*100:.2f}%)")
 
+    # Attach predictions to the valid rows (all original columns kept)
     pred_df = valid_df.copy()
     pred_df['predicted_class'] = preds
     pred_df['binder_prob']     = probs
@@ -329,7 +332,7 @@ for dataset_path, dataset_name in dataset_list:
     if result is None:
         continue
 
-    # Per-peptide predictions 
+    # Per-peptide predictions — all original columns + predicted_class + binder_prob
     pred_out = os.path.join(args.outdir, f"{dataset_name}_predictions.csv")
     result["predictions_df"].to_csv(pred_out, index=False)
     print(f"Saved: {pred_out}")
