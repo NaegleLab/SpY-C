@@ -190,6 +190,22 @@ print(f"\nBinders loaded   : {len(binders)}")
 print(f"Nonbinders loaded: {len(nonbinders)}")
 
 # ===========================
+# CONFIDENCE CATEGORY HELPER
+# ===========================
+def assign_confidence(prob):
+    """
+    >= 0.6  -> 'confident binder'
+    <= 0.4  -> 'confident nonbinder'
+    else    -> 'low-confidence'
+    """
+    if prob >= 0.6:
+        return 'confident binder'
+    elif prob <= 0.4:
+        return 'confident nonbinder'
+    else:
+        return 'low-confidence'
+
+# ===========================
 # LOAD DATASET HELPER
 # Returns full DataFrame + the name of the peptide column
 # ===========================
@@ -237,8 +253,9 @@ def predict_peptides(input_df, pep_col, name="Dataset"):
     print(f"{name}: {preds.sum()} / {len(valid_peps)} predicted binders ({preds.mean()*100:.2f}%)")
 
     pred_df = valid_df.copy()
-    pred_df['predicted_class'] = preds
-    pred_df['binder_prob']     = probs
+    pred_df['predicted_class']     = preds
+    pred_df['binder_prob']         = probs
+    pred_df['confidence_category'] = pred_df['binder_prob'].apply(assign_confidence)
     pred_df = pred_df.sort_values('binder_prob', ascending=False).reset_index(drop=True)
 
     return pred_df
@@ -255,10 +272,15 @@ def bootstrap_evaluate(input_df, pep_col, name="Dataset", n_iter=10000, frac=0.9
     filtered_df = input_df[mask].copy()
     filtered_df[pep_col] = filtered_df[pep_col].str.strip()
 
-    # Remove training peptides
-    training_set = set(binders) | set(nonbinders)
-    eval_df = filtered_df[~filtered_df[pep_col].isin(training_set)].copy()
-    print(f"\n{name}: {len(eval_df)} peptides after filtering training set")
+    # Identify training peptides present in this dataset (before removal)
+    training_set   = set(binders) | set(nonbinders)
+    training_mask  = filtered_df[pep_col].isin(training_set)
+    training_in_ds = filtered_df[training_mask].copy()
+
+    # Remove training peptides for bootstrap / model evaluation
+    eval_df = filtered_df[~training_mask].copy()
+    print(f"\n{name}: {len(eval_df)} peptides after filtering training set "
+          f"({len(training_in_ds)} training peptides found in dataset)")
 
     # Deduplicate — bootstrap mean/sd should be over unique peptides only
     n_before_dedup = len(eval_df)
@@ -274,6 +296,33 @@ def bootstrap_evaluate(input_df, pep_col, name="Dataset", n_iter=10000, frac=0.9
     pred_df = predict_peptides(eval_df, pep_col, name=name)
     if pred_df is None:
         return None
+
+    # ------------------------------------------------------------------
+    # Re-attach training peptides with their ground-truth labels.
+    # predicted_class = label from training (1 = binder, 0 = nonbinder)
+    # binder_prob     = NaN  (model was trained on these; no prediction)
+    # confidence_category = NaN
+    # ------------------------------------------------------------------
+    if not training_in_ds.empty:
+        training_in_ds = training_in_ds.drop_duplicates(subset=pep_col).copy()
+
+        def training_label(pep):
+            if pep in binders_set - overlap:
+                return 1
+            elif pep in nonbinders_set - overlap:
+                return 0
+            else:
+                return np.nan   # was in overlap; shouldn't occur after filtering above
+
+        training_in_ds['predicted_class']     = training_in_ds[pep_col].apply(training_label)
+        training_in_ds['binder_prob']         = np.nan
+        training_in_ds['confidence_category'] = np.nan
+
+        # Stack: model predictions first (sorted by prob), then training rows at the bottom
+        combined_df = pd.concat([pred_df, training_in_ds], ignore_index=True)
+        print(f"{name}: {len(training_in_ds)} training peptides re-added with ground-truth labels")
+    else:
+        combined_df = pred_df
 
     y_pred      = pred_df["predicted_class"].values
     N           = len(y_pred)
@@ -305,7 +354,7 @@ def bootstrap_evaluate(input_df, pep_col, name="Dataset", n_iter=10000, frac=0.9
         "sd":             sd_frac,
         "N":              N,
         "n_total":        len(input_df),
-        "predictions_df": pred_df}
+        "predictions_df": combined_df}
 
 # ===========================
 # RUN ALL DATASETS
@@ -329,7 +378,7 @@ for dataset_path, dataset_name in dataset_list:
     if result is None:
         continue
 
-    # Per-peptide predictions 
+    # Per-peptide predictions
     pred_out = os.path.join(args.outdir, f"{dataset_name}_predictions.csv")
     result["predictions_df"].to_csv(pred_out, index=False)
     print(f"Saved: {pred_out}")
