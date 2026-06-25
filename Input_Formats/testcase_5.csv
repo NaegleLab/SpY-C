@@ -1,0 +1,3 @@
+dataset,label,n_total_in_group,n_unique_novel_in_group,binder_fraction,sd,n_iter,sample_frac
+case5_txt,,150,146,0.50685,0.010081342948008984,10000,0.95
+case5_csv,,150,146,0.506795652173913,0.010095456917226164,10000,0.95
