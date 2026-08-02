@@ -59,6 +59,10 @@ Peptides identified as:
 - Peptides that did not bind any of the SH2 domains are identified as non-binders and are used as negative examples. `funtional_binding_call` is no-binding for all SH2 domains)
 
 ---
+## Input training peptide files can be found in Input_files folder.
+
+---
+
 # Notes
 
 - Positive datasets consist of experimentally validated SH2-binding peptides.
