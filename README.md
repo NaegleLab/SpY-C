@@ -40,7 +40,7 @@ Outputs
 ### To run predictions using the trained model on new peptide datasets.
 ```bash
 
-python model_deploy_new.py \
+python deploy_model.py \
   --model examples/test.pkl \
   --binders Final_positive_training.txt \
   --nonbinders Final_negative_training.txt \

@@ -543,7 +543,7 @@ for path, dname, ul_flag in dataset_list:
     final_df = res["predictions_df"]
     final_df_to_write = final_df.drop(columns=['_clean_peptide'], errors='ignore')
     pred_out = os.path.join(args.outdir, f"{dname}_predictions.csv")
-    final_df_to_write.to_csv(pred_out, index=False)
+    final_df_to_write.to_csv(pred_out, index=False) 
     print(f"  saved predictions -> {pred_out}")
 
     all_summaries.extend(res["summaries"])
