@@ -14,13 +14,14 @@ SetF6 - F5+FES
 SetF7 - F6+SH3BP2
 SetF8 - F7+TENC1
 
+---
+
 # Evaluation peptides 
 
-## Positive set 
-The following are the different sources used to generate a positive evaluation set of peptides that are known to bind native SH2 domains and a negative evaluation set that are confident nonbinders. 
+Here we summarize the peptide datasets used for SpY-C model evaluation. The evaluation sets are grouped into **positive** and **negative** peptide groups based on experimental evidence of SH2-domain binding.
 
 
-# Positive Evaluation Datasets
+# Positive Evaluation Datasets (Evaluation/Positive_evaluation_set.txt)
 
 ## 1. K562 Dataset (`35613471`)
 Positive evaluation peptides collected from experiments performed:
@@ -47,7 +48,7 @@ Positive evaluation peptides collected from experiments performed:
 - Only peptides binding to at least 5% of the tested domains were retained
 
 ---
-# Negative Evaluation Datasets
+# Negative Evaluation Datasets (Evaluation/Negative_evaluation_set.txt)
 
 ## 1. Chang Dataset (`36711935`)
 Peptides identified as:
