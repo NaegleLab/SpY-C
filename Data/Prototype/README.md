@@ -13,3 +13,19 @@ SetF5 - F4+GRB14
 SetF6 - F5+FES
 SetF7 - F6+SH3BP2
 SetF8 - F7+TENC1
+
+# Evaluation peptides 
+
+## Positive set 
+The following are the different sources used to generate a positive evaluation set of peptides that are known to bind native SH2 domains and a negative evaluation set that are confident nonbinders. 
+
+1. PDB structures 
+2. PepspotDB - top5% of each SH2 domain and peptides that have bound atleast 5% SH2 domains tested 
+3. K562 - Peptides bound to WT SH2 across all their experiments
+4. FP - peptides whose `functional_binding_call` is 'binder' 
+5. controls - 'DDAVPP', 'DGDVPK', 'DVDVPP','DEDEVP','PSVNVQ','NDIIPL','TIAQVQ','VESTVV','PQEEIP','DDDDVD' - obtained from PUBMED:20627867
+
+## Negative set
+
+1. Hela - Peptides bound to IMAC or Antibodies but not to any sSH2 within their experiments
+2. FP - a small set of peptides were found to not bind any of the SH2 domains within the set of SH2 domains tested in their experiment; `funtional_binding_call` is no-binding
