@@ -19,13 +19,49 @@ SetF8 - F7+TENC1
 ## Positive set 
 The following are the different sources used to generate a positive evaluation set of peptides that are known to bind native SH2 domains and a negative evaluation set that are confident nonbinders. 
 
-1. PDB structures 
-2. PepspotDB - top5% of each SH2 domain and peptides that have bound atleast 5% SH2 domains tested 
-3. K562 - Peptides bound to WT SH2 across all their experiments
-4. FP - peptides whose `functional_binding_call` is 'binder' 
-5. controls - 'DDAVPP', 'DGDVPK', 'DVDVPP','DEDEVP','PSVNVQ','NDIIPL','TIAQVQ','VESTVV','PQEEIP','DDDDVD' - obtained from PUBMED:20627867
 
-## Negative set
+# Positive Evaluation Datasets
 
-1. Hela - Peptides bound to IMAC or Antibodies but not to any sSH2 within their experiments
-2. FP - a small set of peptides were found to not bind any of the SH2 domains within the set of SH2 domains tested in their experiment; `funtional_binding_call` is no-binding
+## 1. K562 Dataset (`35613471`)
+Positive evaluation peptides collected from experiments performed:
+- Across multiple experimental conditions (With and without pervanadate treatment)
+- Identified those bound to WT SH2 domains (Src, CRKL, Fes, P85A_N, Abl1, Nck1, Grb2, Lck, PTN11_N, P85B_N)
+
+---
+## 2. PDB Structural Dataset
+- Peptides extracted from experimentally resolved PDB structures.
+
+---
+## 3. Nash Paper Positive Evaluation Dataset (`20627867`)
+- Control peptides used in their SPOT array experiments are used for positive evaluation here. 
+	'DDAVPP', 'DGDVPK', 'DVDVPP','DEDEVP','PSVNVQ','NDIIPL','TIAQVQ','VESTVV','PQEEIP','DDDDVD' 
+
+---
+## 4. FP Dataset (`32540967`)
+- Peptides classified as binders for individual SH2 domains (`functional_binding_call` is 'binder')
+- Binding threshold: **Kd < 10 μM**
+
+---
+## 5. PepspotDB Dataset
+- Top 5% peptides were selected for each domain
+- Only peptides binding to at least 5% of the tested domains were retained
+
+---
+# Negative Evaluation Datasets
+
+## 1. Chang Dataset (`36711935`)
+Peptides identified as:
+- Bound only to antibody or IMAC
+- Not bound to sSH2 (superbinder) domain in any of their experiments
+
+## 2. FP Polarization Dataset (`32540967`)
+- Peptides that did not bind any of the SH2 domains are identified as non-binders and are used as negative examples. `funtional_binding_call` is no-binding for all SH2 domains)
+
+---
+# Notes
+
+- Positive datasets consist of experimentally validated SH2-binding peptides.
+- Negative datasets consist of peptides lacking SH2-binding evidence under the tested experimental conditions.
+- Dataset identifiers in parentheses correspond to associated publication identifiers or references.
+
+
