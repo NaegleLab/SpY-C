@@ -36,6 +36,7 @@ python analyze_hyperparams.py \
 
 Outputs
 - summary csv files and png images to chose the best hyperparameters across runs
+- The complete training pipeline, including feature construction, hyperparameter optimization, and classification, is evaluated using nested cross-validation. Mean Accuracy, F1-score, and ROC-AUC across the outer folds are used to estimate the generalization performance of the training workflow.
 
 ### To acess final model performance 
 ```bash
