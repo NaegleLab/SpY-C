@@ -1,17 +1,11 @@
 #!/usr/bin/env python3
 """
-evaluate_model.py
-
 Evaluate a saved model artifact (.pkl) on a combined positive + negative
 peptide test set, excluding peptides that were used in training, and
-after removing duplicate peptides.
+after removing duplicate peptides in the evaluation datasets.
 
-This script does NOT train or re-fit anything. The model is already
-trained and saved inside --best_pkl; this script only loads it with
-joblib and calls model.predict() / model.predict_proba(). It imports
-peptide_encodings.py ONLY to reuse its pure encoding functions
-(encode_logodds_sum, encode_dpps_sum, encode_hydro_sum) -- that module
-has no training/fitting code, so importing it is instant and safe.
+This script imports peptide_encodings.py ONLY to reuse its pure encoding functions
+(encode_logodds_sum, encode_dpps_sum, encode_hydro_sum).
 
 peptide_encodings.py must define:
     - dpps_scores         (dict)
@@ -23,7 +17,6 @@ peptide_encodings.py must define:
 Positive and negative peptides are combined into a single labeled set
 before scoring. This is required for Accuracy, F1, and ROC-AUC to be
 meaningful -- these metrics need both classes present in y_true.
-Sensitivity/Specificity/TP/TN/FP/FN are still broken out by class.
 
 Usage
 -----
@@ -43,27 +36,15 @@ import sys
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.metrics import (
-    confusion_matrix,
-    accuracy_score,
-    f1_score,
-    roc_auc_score,
-)
+from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, roc_auc_score
 
 # ---------------------------------------------------------------------
 # Import encoding functions / dictionaries from peptide_encodings.py
-# (this module contains only dict/function definitions -- no training
-# or CV code -- so importing it here does NOT retrain or re-run any model)
-#
-# NOTE: this module must NOT be named "encodings.py" -- that name
-# collides with Python's own stdlib "encodings" package and causes
-# ImportError / wrong-module-loaded errors.
 # ---------------------------------------------------------------------
 from peptide_encodings import (
     encode_logodds_sum,
     encode_dpps_sum,
-    encode_hydro_sum,
-)
+    encode_hydro_sum)
 
 
 # ---------------------------------------------------------------------
@@ -110,12 +91,6 @@ def encode_peptides(peptides, saved):
 def evaluate_combined(model, saved, test_pos_file, test_neg_file, training_peptides):
     """
     Evaluate the model on positive + negative peptides together.
-
-    Sensitivity/specificity are still reported per-class (same definitions
-    as before), but Accuracy, F1, and ROC-AUC are computed on the combined
-    set -- these metrics require both classes to be present in y_true to
-    be meaningful (roc_auc_score in particular will raise an error if
-    y_true only contains one class).
     """
     pos_peptides = load_eval_peptides(test_pos_file, training_peptides)
     neg_peptides = load_eval_peptides(test_neg_file, training_peptides)
