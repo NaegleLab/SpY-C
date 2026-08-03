@@ -1,6 +1,6 @@
 # SpY-C
 SH2-pY global classification SVM model
-<img src="SPYC_graphic.png.png" width="600" height="400">
+<img src="SPYC_graphic.png" width="600" height="400">
 
 
 # Requirements
