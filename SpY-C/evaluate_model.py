@@ -2,27 +2,39 @@
 """
 evaluate_model.py
 
-Evaluate a saved model artifact (.pkl) on positive and/or negative
-peptide test sets, excluding peptides that were used in training,
-and after removing duplicate peptides.
+Evaluate a saved model artifact (.pkl) on a combined positive + negative
+peptide test set, excluding peptides that were used in training, and
+after removing duplicate peptides.
 
 This script does NOT train or re-fit anything. The model is already
 trained and saved inside --best_pkl; this script only loads it with
-joblib and calls model.predict(). peptide_encodings.py is imported ONLY to reuse
-its pure encoding functions (encode_logodds_sum, encode_dpps_sum,
-encode_hydro_sum)
+joblib and calls model.predict() / model.predict_proba(). It imports
+peptide_encodings.py ONLY to reuse its pure encoding functions
+(encode_logodds_sum, encode_dpps_sum, encode_hydro_sum) -- that module
+has no training/fitting code, so importing it is instant and safe.
+
+peptide_encodings.py must define:
+    - dpps_scores         (dict)
+    - hydropathy_dict     (dict)
+    - encode_logodds_sum(peptides, log_b, log_nb)
+    - encode_dpps_sum(peptides, dpps_b, dpps_nb)
+    - encode_hydro_sum(peptides, hydro_b, hydro_nb)
+
+Positive and negative peptides are combined into a single labeled set
+before scoring. This is required for Accuracy, F1, and ROC-AUC to be
+meaningful -- these metrics need both classes present in y_true.
+Sensitivity/Specificity/TP/TN/FP/FN are still broken out by class.
 
 Usage
 -----
     python evaluate_model.py \
-        --best_pkl Data/Prototype/Final_selected_artifactFiles/SetA+ITK_run5_auc0.9624_C5_g1.pkl \
-        --binder Data/Training_peptides/Final_positive_training.txt \
-        --nonbinder Data/Training_peptides/Final_negative_training.txt \
-        --test_neg Data/Prototype/Evaluation/Positive_evaluation_Set.txt \
-        --test_pos Data/Prototype/Evaluation/Negative_evaluation_Set.txt
+        --best_pkl final_artifact_files/SetA+ITK_run5_auc0.9624_C5_g1.pkl \
+        --binder Final_positive_training.txt \
+        --nonbinder Final_negative_training.txt \
+        --test_pos evaluation_Sets/comb_positive_evaluation1.txt \
+        --test_neg evaluation_Sets/comb_negative_evaluation1.txt
 
-At least one of --test_pos / --test_neg must be given. Both can be given
-together.
+Both --test_pos and --test_neg are required.
 """
 
 import argparse
@@ -31,16 +43,28 @@ import sys
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import (
+    confusion_matrix,
+    accuracy_score,
+    f1_score,
+    roc_auc_score,
+)
 
 # ---------------------------------------------------------------------
 # Import encoding functions / dictionaries from peptide_encodings.py
+# (this module contains only dict/function definitions -- no training
+# or CV code -- so importing it here does NOT retrain or re-run any model)
+#
+# NOTE: this module must NOT be named "encodings.py" -- that name
+# collides with Python's own stdlib "encodings" package and causes
+# ImportError / wrong-module-loaded errors.
 # ---------------------------------------------------------------------
 from peptide_encodings import (
     encode_logodds_sum,
     encode_dpps_sum,
     encode_hydro_sum,
 )
+
 
 # ---------------------------------------------------------------------
 # Helpers
@@ -83,63 +107,70 @@ def encode_peptides(peptides, saved):
     return X
 
 
-def evaluate_negative_set(model, saved, test_neg_file, training_peptides):
-    peptides = load_eval_peptides(test_neg_file, training_peptides)
+def evaluate_combined(model, saved, test_pos_file, test_neg_file, training_peptides):
+    """
+    Evaluate the model on positive + negative peptides together.
 
-    X = encode_peptides(peptides, saved)
+    Sensitivity/specificity are still reported per-class (same definitions
+    as before), but Accuracy, F1, and ROC-AUC are computed on the combined
+    set -- these metrics require both classes to be present in y_true to
+    be meaningful (roc_auc_score in particular will raise an error if
+    y_true only contains one class).
+    """
+    pos_peptides = load_eval_peptides(test_pos_file, training_peptides)
+    neg_peptides = load_eval_peptides(test_neg_file, training_peptides)
+
+    all_peptides = pos_peptides + neg_peptides
+    y_true = np.array(
+        [1] * len(pos_peptides) + [0] * len(neg_peptides), dtype=int
+    )
+
+    X = encode_peptides(all_peptides, saved)
     y_pred = model.predict(X)
-    y_true = np.zeros(len(peptides), dtype=int)
-
-    tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
-
-    specificity = tn / (tn + fp) if (tn + fp) else float("nan")
-    fpr = fp / (tn + fp) if (tn + fp) else float("nan")
-
-    print("=" * 50)
-    print("NEGATIVE SET RESULTS")
-    print("=" * 50)
-    print(f"Negative peptides evaluated : {len(peptides)}")
-    print(f"TN : {tn}")
-    print(f"FP : {fp}")
-    print(f"Specificity         : {specificity:.3f}")
-    print(f"False positive rate : {fpr:.3f}")
-    print()
-
-    return {
-        "Specificity": specificity,
-        "TN": tn,
-        "FP": fp,
-        "Total": tn + fp,
-        "Unique_peptides": len(peptides),
-    }
-
-
-def evaluate_positive_set(model, saved, test_pos_file, training_peptides):
-    peptides = load_eval_peptides(test_pos_file, training_peptides)
-
-    X = encode_peptides(peptides, saved)
-    y_pred = model.predict(X)
-    y_true = np.ones(len(peptides), dtype=int)
+    y_prob = model.predict_proba(X)[:, 1]
 
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
 
     sensitivity = tp / (tp + fn) if (tp + fn) else float("nan")
+    specificity = tn / (tn + fp) if (tn + fp) else float("nan")
+    fpr = fp / (tn + fp) if (tn + fp) else float("nan")
+
+    accuracy = accuracy_score(y_true, y_pred)
+    f1 = f1_score(y_true, y_pred)
+    roc_auc = roc_auc_score(y_true, y_prob)
 
     print("=" * 50)
-    print("POSITIVE SET RESULTS")
+    print("COMBINED SET RESULTS")
     print("=" * 50)
-    print(f"Positive peptides evaluated : {len(peptides)}")
-    print(f"TP : {tp}")
-    print(f"FN : {fn}")
+    print(f"Positive peptides evaluated : {len(pos_peptides)}")
+    print(f"Negative peptides evaluated : {len(neg_peptides)}")
+    print(f"Total peptides evaluated    : {len(all_peptides)}")
+    print()
+    print(f"TP : {tp}    FN : {fn}")
+    print(f"TN : {tn}    FP : {fp}")
+    print()
     print(f"Sensitivity          : {sensitivity:.3f}")
+    print(f"Specificity          : {specificity:.3f}")
+    print(f"False positive rate  : {fpr:.3f}")
+    print()
+    print(f"Accuracy    : {accuracy:.3f}")
+    print(f"F1-score    : {f1:.3f}")
+    print(f"ROC-AUC     : {roc_auc:.3f}")
     print()
 
     return {
         "Sensitivity": sensitivity,
+        "Specificity": specificity,
         "TP": tp,
         "FN": fn,
-        "Total": tp + fn,
-        "Unique_peptides": len(peptides),
+        "TN": tn,
+        "FP": fp,
+        "Positive_peptides": len(pos_peptides),
+        "Negative_peptides": len(neg_peptides),
+        "Total_peptides": len(all_peptides),
+        "Accuracy": round(accuracy, 3),
+        "F1-score": round(f1, 3),
+        "ROC-AUC": round(roc_auc, 3),
     }
 
 
@@ -163,19 +194,16 @@ def main():
         "--nonbinder", required=True, help="Path to negative/nonbinder training file"
     )
     parser.add_argument(
-        "--test_pos", default=None, help="Path to positive evaluation set (optional)"
+        "--test_pos", required=True, help="Path to positive evaluation set"
     )
     parser.add_argument(
-        "--test_neg", default=None, help="Path to negative evaluation set (optional)"
+        "--test_neg", required=True, help="Path to negative evaluation set"
     )
 
     args = parser.parse_args()
 
-    if args.test_pos is None and args.test_neg is None:
-        parser.error("Provide at least one of --test_pos or --test_neg")
-
     # -------------------------------------------------------------
-    # Load the already-trained artifact 
+    # Load the already-trained artifact (no retraining happens here)
     # -------------------------------------------------------------
     saved = joblib.load(args.best_pkl)
     model = saved["model"]
@@ -187,17 +215,9 @@ def main():
     print(f"Training peptides loaded: {len(training_peptides)}")
     print()
 
-    results = {}
-
-    if args.test_pos:
-        results["positive"] = evaluate_positive_set(
-            model, saved, args.test_pos, training_peptides
-        )
-
-    if args.test_neg:
-        results["negative"] = evaluate_negative_set(
-            model, saved, args.test_neg, training_peptides
-        )
+    results = evaluate_combined(
+        model, saved, args.test_pos, args.test_neg, training_peptides
+    )
 
     return results
 

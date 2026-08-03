@@ -36,6 +36,19 @@ python analyze_hyperparams.py \
 
 Outputs
 - summary csv files and png images to chose the best hyperparameters across runs
+
+### To acess final model performance 
+```bash
+python evaluate_model.py \
+        --best_pkl Data/Prototype/Final_selected_artifactFiles/SetA+ITK_run5_auc0.9624_C5_g1.pkl \
+        --binder Data/Training_peptides/Final_positive_training.txt \
+        --nonbinder Data/Training_peptides/Final_negative_training.txt \
+        --test_neg Data/Prototype/Evaluation/Positive_evaluation_Set.txt \
+        --test_pos Data/Prototype/Evaluation/Negative_evaluation_Set.txt
+```
+Outputs
+- Accuracy both Positive and Negative sets, 
+
    
 ### To run predictions using the trained model on new peptide datasets.
 ```bash
