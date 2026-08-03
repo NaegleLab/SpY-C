@@ -1,8 +1,10 @@
 # SpY-C
 SH2-pY global classification SVM model
-<img src="SPYC_graphic.png" width="600" height="400">
+<p align="center">
+  <img src="SPYC_graphic.png" width="600" height="400">
+</p>
 
-
+---
 # Requirements
 
 ## Python Version
@@ -15,7 +17,13 @@ Install all required packages using:
 ```bash
 pip install -r requirements.txt
 ```
-### To build an SVM-based SH2-pY classifier using curated binder and non-binder peptide datasets.
+---
+### Overview of SpY-C pipeline
+
+![Pipeline Overview](SPYC_workflow.png) 
+
+
+### Step 1 - To build an SVM-based SH2-pY classifier using curated binder and non-binder peptide datasets.
 ```bash 
 python model.py
 ```
@@ -28,7 +36,7 @@ python model.py
 - test_nested_cv_performance.csv
 - test_run_Selection_log.csv
 
-### To identify best hyperparameters for Final model development.
+### Step 2 - To identify best hyperparameters for Final model development.
 ```bash
 python analyze_hyperparams.py \
   --perf test_nested_cv_performance.csv \
@@ -39,7 +47,7 @@ Outputs
 - summary csv files and png images to chose the best hyperparameters across runs
 - The complete training pipeline, including feature construction, hyperparameter optimization, and classification, is evaluated using nested cross-validation. Mean Accuracy, F1-score, and ROC-AUC across the outer folds are used to estimate the generalization performance of the training workflow.
 
-### To access model performance
+### Step 3 - To access model performance
 - Useful to compare candidate training models to pick the best training dataset
 ```bash
 python evaluate_model.py \
@@ -53,8 +61,7 @@ Outputs
 - Accuracy, F1-score, ROC-AUC, Sensitivity, and Specificity are calculated by applying the final selected model (the chosen `.pkl` file together with its corresponding training dataset) to independent positive and negative evaluation datasets. These metrics estimate how well the deployed model generalizes to previously unseen data.
 performance on unseen data.  
 
-   
-### To run predictions using the trained model on new peptide datasets.
+### Step 4 - To run predictions using the trained model on new peptide datasets.
 ```bash
 
 python deploy_model.py \
@@ -71,6 +78,3 @@ Inside results/:
 1. *_predictions.csv → peptide wise predicted class + probabilities
 2. Bootstrap based Summary statistics across each Dataset 
 
-### Overview of SpY-C pipeline
-
-![Pipeline Overview](SPYC_workflow.png) 
