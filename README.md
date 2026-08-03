@@ -1,5 +1,6 @@
 # SpY-C
 SH2-pY global classification SVM model
+![Pipeline Overview](SPYC_graphic.png) 
 
 
 # Requirements
@@ -57,9 +58,9 @@ performance on unseen data.
 
 python deploy_model.py \
   --model examples/test.pkl \
-  --binders Final_positive_training.txt \
-  --nonbinders Final_negative_training.txt \
-  --datasets set1.txt set2.txt \
+  --binders Data/Training_peptides/Final_positive_training.txt \
+  --nonbinders Data/Training_peptides/Final_negative_training.txt \
+  --datasets examples/set1.txt examples/set2.txt \
   --outdir results/ \
   --names set1 set2
 ```
@@ -70,4 +71,4 @@ Inside results/:
 2. Bootstrap based Summary statistics across each Dataset 
 
 
-![Pipeline Overview](SPYC_steps.png) 
+![Pipeline Overview](SPYC_workflow.png) 
