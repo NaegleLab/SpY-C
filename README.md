@@ -47,7 +47,8 @@ python evaluate_model.py \
         --test_pos Data/Prototype/Evaluation/Negative_evaluation_Set.txt
 ```
 Outputs
-- Accuracy both Positive and Negative sets, 
+- Accuracy, F1-score, ROC-AUC, Sensitivity, and Specificity are calculated by applying the final selected model (the chosen `.pkl` file together with its corresponding training dataset) to independent positive and negative evaluation datasets. These metrics estimate how well the deployed model generalizes to previously unseen data.
+performance on unseen data.  
 
    
 ### To run predictions using the trained model on new peptide datasets.
