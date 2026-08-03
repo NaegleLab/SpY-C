@@ -39,7 +39,8 @@ Outputs
 - summary csv files and png images to chose the best hyperparameters across runs
 - The complete training pipeline, including feature construction, hyperparameter optimization, and classification, is evaluated using nested cross-validation. Mean Accuracy, F1-score, and ROC-AUC across the outer folds are used to estimate the generalization performance of the training workflow.
 
-### To acess final model performance 
+### To access model performance
+- Useful to compare candidate training models to pick the best training dataset
 ```bash
 python evaluate_model.py \
         --best_pkl Data/Prototype/Final_selected_artifactFiles/SetA+ITK_run5_auc0.9624_C5_g1.pkl \
@@ -70,5 +71,6 @@ Inside results/:
 1. *_predictions.csv → peptide wise predicted class + probabilities
 2. Bootstrap based Summary statistics across each Dataset 
 
+### Overview of SpY-C pipeline
 
 ![Pipeline Overview](SPYC_workflow.png) 
