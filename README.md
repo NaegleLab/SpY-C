@@ -25,43 +25,35 @@ pip install -r requirements.txt
 
 ### Step 1 - To build an SVM-based SH2-pY classifier using curated binder and non-binder peptide datasets.
 ```bash 
-python model.py
+python build_model.py
 ```
 1. Inputs
 - Positive training set (Final_positive_training.txt)
 - Negative training set (Final_negative_training.txt)
 
 2. Outputs
-- Trained model artifacts (.pkl)
+- Trained model artifact (.pkl)
 - test_nested_cv_performance.csv
-- test_run_Selection_log.csv
+- _candidate_selection_log.csv
 
-### Step 2 - To identify best hyperparameters for Final model development.
-```bash
-python analyze_hyperparams.py \
-  --perf test_nested_cv_performance.csv \
-  --runlog test_run_Selection_log.csv 
-```
-
-Outputs
-- summary csv files and png images to chose the best hyperparameters across runs
-- The complete training pipeline, including feature construction, hyperparameter optimization, and classification, is evaluated using nested cross-validation. Mean Accuracy, F1-score, and ROC-AUC across the outer folds are used to estimate the generalization performance of the training workflow.
-
-### Step 3 - To access model performance
-- Useful to compare candidate training models to pick the best training dataset
+### Step 2 - To evaluate model performance.
+- Useful to compare across candidate training models to pick the best training dataset
 ```bash
 python evaluate_model.py \
-        --best_pkl Data/Prototype/Final_selected_artifactFiles/SetA+ITK_run5_auc0.9624_C5_g1.pkl \
-        --binder Data/Training_peptides/Final_positive_training.txt \
-        --nonbinder Data/Training_peptides/Final_negative_training.txt \
-        --test_neg Data/Prototype/Evaluation/Positive_evaluation_Set.txt \
-        --test_pos Data/Prototype/Evaluation/Negative_evaluation_Set.txt
+  --best_pkl FinalSet_FinalDeploy_C0.5_g1.0_selAUC0.9304.pkl \
+  --binder Final_positive_training.txt \
+  --nonbinder Final_negative_training.txt \
+  --test_pos comb_positive_evaluation.txt \
+  --test_neg comb_negative_evaluation.txt \
+  --label FinalSet \
+  --output evaluation_results_FinalSet.csv
 ```
-Outputs
-- Accuracy, F1-score, ROC-AUC, Sensitivity, and Specificity are calculated by applying the final selected model (the chosen `.pkl` file together with its corresponding training dataset) to independent positive and negative evaluation datasets. These metrics estimate how well the deployed model generalizes to previously unseen data.
-performance on unseen data.  
 
-### Step 4 - To run predictions using the trained model on new peptide datasets.
+Outputs
+- files
+
+
+### Step 4 - To run predictions using the selected trained model on new peptide datasets.
 ```bash
 
 python deploy_model.py \

@@ -1,0 +1,3 @@
+dataset,label,n_total_in_group,n_unique_novel_in_group,binder_fraction,sd,n_iter,sample_frac
+set1,,500,482,0.4398260393873085,0.005289840897619643,10000,0.95
+set2,,77,77,0.4285054794520548,0.013252992382600364,10000,0.95
