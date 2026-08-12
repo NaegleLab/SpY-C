@@ -1,0 +1,2 @@
+Label,Model_pkl,Sensitivity,Specificity,TP,FN,TN,FP,Positive_peptides,Negative_peptides,Total_peptides,Accuracy,F1-score,ROC-AUC
+setA_BRK,setA_BRK_FinalDeploy_C0.5_g1.0_selAUC0.9330.pkl,0.7592319054652881,0.7714285714285715,1028,326,1134,336,1354,1470,2824,0.766,0.756,0.847
