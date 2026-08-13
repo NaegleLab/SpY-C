@@ -70,5 +70,5 @@ Peptides identified as:
 - Positive datasets consist of experimentally validated SH2-binding peptides.
 - Negative datasets consist of peptides lacking SH2-binding evidence under the tested experimental conditions.
 - Dataset identifiers in parentheses correspond to associated publication identifiers or references.
-
+- Step3_output folder contains example files on which one can use their trained model and make predictions on new datasets. 
 
