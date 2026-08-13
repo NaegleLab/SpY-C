@@ -70,5 +70,15 @@ python deploy_model.py \
 
 Outputs
 - *_predictions.csv → peptide wise predicted class + probabilities (for every input dataset separately)
-- Bootstrap based Summary statistics across each Dataset 
+- Bootstrap based Summary statistics across each Dataset
+
+---
+## SpY-C Models
+
+| Version | Model artifact | Training dataset |
+|---------|----------------|------------------|
+| **SpY-C v1.0** | [`SpY-C_v1.0.pkl`](prototyping/step1_outputs/FinalSet_FinalDeploy_C0.5_g1.0_selAUC0.9304.pkl) | [`SpY-C_v1.0_training`](Data/Training_peptides) |
+
+
+For reproducing the predictions reported in this study (), use the **SpY-C_v1.0** model artifact with its corresponding training dataset.
 
