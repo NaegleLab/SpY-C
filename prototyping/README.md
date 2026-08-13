@@ -1,5 +1,7 @@
 # Candidate positive training Datasets nomenclature 
 
+
+* FinalSet - Final optimized training set used for SpY-C (LYN(AP-MS), and the rest CRK,SYK-N, SYK-C, ITK from PepspotDB))
 * SetA - LYN (AP-MS), and CRK, SYK-N, SYK-C (SPOT arrays) bound peptides from mixed experimental sources. 
 * SetB - LYN, CRK, SYK-N, SYK-C all from SPOT arrays (PepspotDB)
 * SetC - Strongest binders from PepspotDB (top5% and binding >= 4% SH2 domains) 
